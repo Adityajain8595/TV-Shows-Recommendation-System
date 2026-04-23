@@ -1,0 +1,13 @@
+flask
+flask-cors
+pandas
+numpy
+scikit-learn
+sentence-transformers
+transformers
+beautifulsoup4
+lxml
+python-dotenv
+langchain-groq
+langchain-core
+pydantic

@@ -1,0 +1,521 @@
+{% extends "base.html" %}
+
+{% block title %}TV Show Recommender - Find Similar Shows{% endblock %}
+
+{% block content %}
+<style>
+.search-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 40px 0;
+    color: white;
+}
+
+.filter-card {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    margin-top: -30px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.recommendation-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.recommendation-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 20px 35px rgba(0,0,0,0.2);
+    z-index: 10;
+}
+
+.match-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 6px 14px;
+    border-radius: 30px;
+    font-size: 13px;
+    font-weight: bold;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.explanation-text {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: #2c3e50;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 12px;
+    border-radius: 8px;
+    margin-top: 10px;
+    border-left: 4px solid #667eea;
+    font-style: italic;
+}
+
+.target-show-card {
+    background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+    border: none;
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.genre-tag {
+    display: inline-block;
+    background: #e9ecef;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    margin-right: 8px;
+    margin-bottom: 8px;
+}
+
+.search-box {
+    position: relative;
+}
+
+.autocomplete-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 400px;
+    overflow-y: auto;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    z-index: 1000;
+    display: none;
+}
+
+.autocomplete-results.show {
+    display: block;
+}
+
+.autocomplete-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+    transition: all 0.2s ease;
+}
+
+.autocomplete-item:hover {
+    background-color: #f8f9fa;
+    transform: translateX(5px);
+}
+
+.autocomplete-poster {
+    width: 40px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-right: 15px;
+}
+
+.slider-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.slider-value {
+    font-weight: bold;
+    color: #667eea;
+}
+
+input[type=range] {
+    width: 100%;
+    height: 6px;
+    -webkit-appearance: none;
+    background: #e9ecef;
+    border-radius: 3px;
+    outline: none;
+}
+
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #667eea;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+input[type=range]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+.full-overview {
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: #555;
+    margin-top: 10px;
+    max-height: none;
+    overflow: visible;
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(0,0,0,.1);
+    border-radius: 50%;
+    border-top-color: #667eea;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.value-display {
+    font-size: 14px;
+    font-weight: bold;
+    color: #667eea;
+}
+</style>
+
+<div class="search-section">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 text-center">
+                <h1 class="display-5 fw-bold mb-3">TV Show Recommender</h1>
+                <p class="lead">Find similar shows based on what you love</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="filter-card">
+        <form method="GET" action="{{ url_for('main.recommendations_page') }}" id="searchForm">
+            <div class="row">
+                <div class="col-md-12 mb-4">
+                    <div class="search-box">
+                        <input type="text" 
+                               name="show" 
+                               id="showInput" 
+                               class="form-control form-control-lg" 
+                               placeholder="Search for a TV show... e.g., Breaking Bad, Game of Thrones"
+                               value="{{ search_show }}"
+                               autocomplete="off">
+                        <div id="autocompleteResults" class="autocomplete-results"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <div class="slider-label">
+                        <span>Min Vote Count</span>
+                        <span id="voteCountValue" class="slider-value">{{ vote_count if vote_count else 50 }}</span>
+                    </div>
+                    <input type="range" 
+                           name="vote_count" 
+                           id="voteCountSlider"
+                           class="form-range" 
+                           min="0" 
+                           max="20000" 
+                           step="500"
+                           value="{{ vote_count if vote_count else 50 }}">
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="slider-label">
+                        <span>Min Rating</span>
+                        <span id="ratingValue" class="slider-value">{{ vote_average if vote_average else 6.0 }}</span>
+                    </div>
+                    <input type="range" 
+                           name="vote_average" 
+                           id="ratingSlider"
+                           class="form-range" 
+                           min="0" 
+                           max="10" 
+                           step="0.5"
+                           value="{{ vote_average if vote_average else 6.0 }}">
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="slider-label">
+                        <span>Max Seasons</span>
+                        <span id="seasonsValue" class="slider-value">{{ max_seasons if max_seasons else 20 }}</span>
+                    </div>
+                    <input type="range" 
+                           name="max_seasons" 
+                           id="seasonsSlider"
+                           class="form-range" 
+                           min="1" 
+                           max="30" 
+                           step="1"
+                           value="{{ max_seasons if max_seasons else 20 }}">
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="slider-label">
+                        <span>Max Episodes</span>
+                        <span id="episodesValue" class="slider-value">{{ max_episodes if max_episodes else 500 }}</span>
+                    </div>
+                    <input type="range" 
+                           name="max_episodes" 
+                           id="episodesSlider"
+                           class="form-range" 
+                           min="1" 
+                           max="500" 
+                           step="50"
+                           value="{{ max_episodes if max_episodes else 500 }}">
+                </div>
+            </div>
+            
+            <div class="row mt-3">
+                <div class="col-12 text-center">
+                    <button type="submit" class="btn btn-primary btn-lg px-5">
+                        <i class="fas fa-search me-2"></i>Find Similar Shows
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    {% if result %}
+    <!-- Target Show -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card target-show-card shadow">
+                <div class="card-body p-4">
+                    <div class="row">
+                        <div class="col-md-3 text-center">
+                            {% if result.target_show.poster_url %}
+                            <img src="{{ result.target_show.poster_url }}" alt="{{ result.target_show.name }}" 
+                                 class="img-fluid rounded shadow" style="max-height: 300px;">
+                            {% else %}
+                            <div class="bg-secondary rounded d-flex align-items-center justify-content-center" 
+                                 style="height: 300px;">
+                                <i class="fas fa-tv fa-5x text-white"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-9">
+                            <h2 class="mb-3">{{ result.target_show.name }}</h2>
+                            <div class="mb-3">
+                                <span class="badge bg-warning text-dark">
+                                    <i class="fas fa-star"></i> {{ "%.1f"|format(result.target_show.vote_average) }}
+                                </span>
+                                <span class="badge bg-secondary ms-2">
+                                    <i class="fas fa-users"></i> {{ result.target_show.vote_count }} votes
+                                </span>
+                                <span class="badge bg-info ms-2">
+                                    <i class="fas fa-calendar"></i> {{ result.target_show.number_of_seasons }} seasons
+                                </span>
+                            </div>
+                            <div class="mb-3">
+                                {% for genre in result.target_show.genres %}
+                                <span class="genre-tag">{{ genre }}</span>
+                                {% endfor %}
+                            </div>
+                            <p class="full-overview">{{ result.target_show.overview }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recommendations -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <h3 class="mb-4"><i class="fas fa-thumbs-up text-success me-2"></i>You Might Also Like</h3>
+        </div>
+        
+        {% for rec in result.recommendations %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card recommendation-card h-100">
+                <div class="match-badge">
+                    {{ "%.1f"|format(rec.similarity_score * 100) }}% Match
+                </div>
+                {% if rec.poster_url %}
+                <img src="{{ rec.poster_url }}" class="card-img-top" alt="{{ rec.name }}" 
+                     style="height: 320px; object-fit: cover;">
+                {% else %}
+                <div class="bg-secondary d-flex align-items-center justify-content-center" 
+                     style="height: 320px;">
+                    <i class="fas fa-tv fa-4x text-white"></i>
+                </div>
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ rec.name }}</h5>
+                    <div class="mb-2">
+                        <span class="badge bg-warning text-dark">
+                            <i class="fas fa-star"></i> {{ "%.1f"|format(rec.vote_average) }}
+                        </span>
+                        <span class="badge bg-secondary ms-1">{{ rec.number_of_seasons }} seasons</span>
+                    </div>
+                    
+                    <!-- FULL description - NO TRUNCATION -->
+                    <p class="full-overview">{{ rec.overview }}</p>
+                    
+                    <div class="mb-2">
+                        {% for genre in rec.genres[:4] %}
+                        <span class="genre-tag">{{ genre }}</span>
+                        {% endfor %}
+                    </div>
+                    
+                    {% if rec.explanation %}
+                    <div class="explanation-text">
+                        <i class="fas fa-fire text-danger me-1"></i>
+                        {{ rec.explanation }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-transparent border-0 pb-3">
+                    <a href="{{ url_for('main.recommendations_page', show=rec.name, vote_count=vote_count if vote_count else 50, vote_average=vote_average if vote_average else 6.0, max_seasons=max_seasons if max_seasons else 20, max_episodes=max_episodes if max_episodes else 500) }}" 
+                       class="btn btn-sm btn-outline-primary w-100">
+                        <i class="fas fa-sync-alt me-1"></i> Get Recs from this Show
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% elif search_show %}
+    <div class="row mt-5">
+        <div class="col-12 text-center">
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Show "{{ search_show }}" not found. Please try another show.
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// Update slider values in real-time
+const voteCountSlider = document.getElementById('voteCountSlider');
+const ratingSlider = document.getElementById('ratingSlider');
+const seasonsSlider = document.getElementById('seasonsSlider');
+const episodesSlider = document.getElementById('episodesSlider');
+
+// Set default values if empty
+if (voteCountSlider && !voteCountSlider.value) {
+    voteCountSlider.value = 50;
+    document.getElementById('voteCountValue').textContent = '50';
+}
+
+if (ratingSlider && !ratingSlider.value) {
+    ratingSlider.value = 6.0;
+    document.getElementById('ratingValue').textContent = '6.0';
+}
+
+if (seasonsSlider && !seasonsSlider.value) {
+    seasonsSlider.value = 20;
+    document.getElementById('seasonsValue').textContent = '20';
+}
+
+if (episodesSlider && !episodesSlider.value) {
+    episodesSlider.value = 500;
+    document.getElementById('episodesValue').textContent = '500';
+}
+
+if (voteCountSlider) {
+    voteCountSlider.addEventListener('input', function() {
+        document.getElementById('voteCountValue').textContent = this.value;
+    });
+}
+
+if (ratingSlider) {
+    ratingSlider.addEventListener('input', function() {
+        document.getElementById('ratingValue').textContent = parseFloat(this.value).toFixed(1);
+    });
+}
+
+if (seasonsSlider) {
+    seasonsSlider.addEventListener('input', function() {
+        document.getElementById('seasonsValue').textContent = this.value;
+    });
+}
+
+if (episodesSlider) {
+    episodesSlider.addEventListener('input', function() {
+        document.getElementById('episodesValue').textContent = this.value;
+    });
+}
+
+// Autocomplete functionality
+const showInput = document.getElementById('showInput');
+const autocompleteResults = document.getElementById('autocompleteResults');
+let searchTimeout;
+
+if (showInput) {
+    showInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        const query = this.value.trim();
+        
+        if (query.length < 2) {
+            autocompleteResults.classList.remove('show');
+            return;
+        }
+        
+        searchTimeout = setTimeout(() => {
+            fetch(`/api/search?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.results && data.results.length > 0) {
+                        autocompleteResults.innerHTML = data.results.map(show => `
+                            <div class="autocomplete-item" onclick="selectShow('${show.name.replace(/'/g, "\\'")}')">
+                                ${show.poster_url ? 
+                                    `<img src="${show.poster_url}" class="autocomplete-poster">` :
+                                    `<div class="autocomplete-poster bg-secondary d-flex align-items-center justify-content-center">
+                                        <i class="fas fa-tv"></i>
+                                     </div>`
+                                }
+                                <div class="autocomplete-info">
+                                    <div class="autocomplete-title">${escapeHtml(show.name)}</div>
+                                    <div class="autocomplete-meta">
+                                        ⭐ ${show.vote_average} | ${show.genres_str}
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('');
+                        autocompleteResults.classList.add('show');
+                    } else {
+                        autocompleteResults.classList.remove('show');
+                    }
+                });
+        }, 300);
+    });
+    
+    // Close autocomplete when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!showInput.contains(e.target) && !autocompleteResults.contains(e.target)) {
+            autocompleteResults.classList.remove('show');
+        }
+    });
+}
+
+function selectShow(showName) {
+    const form = document.getElementById('searchForm');
+    const showInput = document.getElementById('showInput');
+    showInput.value = showName;
+    autocompleteResults.classList.remove('show');
+    form.submit();
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+</script>
+{% endblock %}
