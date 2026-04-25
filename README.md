@@ -1,11 +1,11 @@
-<h1 align="center">🎬 ShowMatcher — AI TV Show Recommender</h1>
-<p align="center"><em>Semantic search meets witty AI — discover your next binge with intelligent, story-driven recommendations</em></p>
+<h1 align="center">🎬 SceneMatcher — AI TV Show Recommender</h1>
+<p align="center"><em>Semantic search meets witty AI — discover your next binge with intelligent, character-driven recommendations</em></p>
 
 <p align="center">
   <a href="https://flask.palletsprojects.com/"><img src="https://img.shields.io/badge/Flask-Latest-000000.svg" alt="Flask"></a>
   <a href="https://www.sbert.net/"><img src="https://img.shields.io/badge/Sentence%20Transformers-All--MiniLM--L6--v2-FF6B6B.svg" alt="Sentence Transformers"></a>
   <a href="https://groq.com/"><img src="https://img.shields.io/badge/Groq-Llama%203.3%2070B-F55032.svg" alt="Groq Llama"></a>
-  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%2B-blue.svg" alt="Python"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.11%2B-blue.svg" alt="Python"></a>
   <a href="https://www.docker.com/"><img src="https://img.shields.io/badge/Docker-Containerized-2496ED.svg" alt="Docker"></a>
   <a href="https://huggingface.co/spaces/Aditya8595/TV-Shows-Recommender"><img src="https://img.shields.io/badge/🤗-Live%20Demo-yellow.svg" alt="Hugging Face Spaces"></a>
 </p>
@@ -30,6 +30,25 @@
 
 </center>
 
+---
+
+## 📺 Embedded Live Preview
+
+<div align="center">
+
+<iframe
+  src="https://aditya8595-tv-shows-recommender.hf.space"
+  width="100%"
+  height="600px"
+  frameborder="0"
+  style="border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);"
+></iframe>
+
+<p align="center">
+  <small>⬆️ Try searching for "Breaking Bad" or "Stranger Things"! ⬆️</small>
+</p>
+
+</div>
 
 ---
 
@@ -37,7 +56,7 @@
 
 Most recommenders just say *"users who liked X also liked Y"*. This one **understands why**.
 
-| Traditional Recommender | ShowMatcher |
+| Traditional Recommender | SceneMatcher |
 |------------------------|--------------|
 | "Fans of Breaking Bad also liked Ozark" | *"Two mild-mannered chemists who swapped beakers for barrels, proving that suburban desperation makes for unforgettable anti-heroes."* |
 | Generic collaborative filtering | Semantic content-based similarity |
@@ -110,14 +129,14 @@ flowchart LR
 - Source: TMDB TV Dataset (2023)
 - Size: 150k → 47,520 cleaned
 - Embeddings: 384-dim vectors
-- Features: name, overview, genres, created_by, vote_count, etc.
+- Features: name, overview, genres, ratings, seasons, etc.
 
 ---
 
 ## 🚀 Run Locally
 
 ### Prerequisites
-- Python 3.10+
+- Python 3.11+
 - 8GB RAM
 - Groq API Key
 
@@ -150,6 +169,23 @@ docker run -d -p 5000:5000 tv-recommender
 
 ---
 
+## 📁 Project Structure
+
+```
+tv-show-recommender/
+├── app/
+├── static/
+├── templates/
+├── data/
+├── Dockerfile
+├── requirements.txt
+├── run.py
+├── config.py
+└── README.md
+```
+
+---
+
 ## 🔌 API Endpoints
 
 | Endpoint | Method | Description |
@@ -167,13 +203,13 @@ docker run -d -p 5000:5000 tv-recommender
 {
   "target_show": {
     "name": "Breaking Bad",
-    "vote_average": 8.0
+    "vote_average": 9.5
   },
   "recommendations": [
     {
       "name": "Better Call Saul",
-      "similarity_score": 0.68,
-      "explanation": "Jimmy's descent mirrors Walter White..."
+      "similarity_score": 0.87,
+      "explanation": "Jimmy's descent mirrors Walter White."
     }
   ]
 }
@@ -204,7 +240,7 @@ CMD ["python", "run.py"]
 ## 🌐 Deployment
 
 - Hugging Face Spaces (Docker SDK)
-- GitHub Repo: https://github.com/Adityajain8595/TV-Shows-Recommendation-System
+- GitHub Repo: https://github.com/Adityajain8595/tv-show-recommender
 
 ---
 
@@ -213,6 +249,7 @@ CMD ["python", "run.py"]
 | Variable | Required | Description |
 |---------|----------|------------|
 | GROQ_API_KEY | Yes | LLM API key |
+| PORT | No | Default 7860 |
 
 ---
 
@@ -247,9 +284,19 @@ git push origin feature/new-feature
 
 ---
 
+## 📄 License
+
+MIT License
+
+---
+
 ## 🙏 Acknowledgments
 
 - TMDB Dataset  
 - Groq Llama API  
 - Hugging Face Spaces  
 - Sentence Transformers  
+
+---
+
+<p align="center"><i>Built with 🎬 by Aditya Jain</i></p>
